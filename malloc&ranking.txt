@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+	int col, row, i, j;
+	int **arr;
+	int *sum;
+	int *rank;
+
+	printf("what col & what row? :");
+	scanf_s("%d %d", &col, &row);
+
+	arr = (int **)malloc(sizeof(int*) * col);
+	sum = (int *)malloc(sizeof(int) * col);
+	rank = (int *)malloc(sizeof(int) * col);
+
+	for (i = 0; i < col; i++) {
+		arr[i] = (int *)malloc(sizeof(int) * row);
+		sum[i] = 0;
+		rank[i] = 1;
+	}
+
+	for (i = 0; i < col; i++) {
+		for (j = 0; j < row; j++) {
+			printf("type %d col %d row :", i, j);
+			scanf_s("%d", &(arr[i][j]));
+			sum[i] += arr[i][j];
+		}
+		sum[i] /= row;
+	}
+
+	for (i = 0; i < col; i++) {
+		for (j = i + 1; j < col; j++) {
+			if (sum[i] > sum[j]) {
+				rank[j]++;
+			}
+			else if (sum[i] < sum[j]) {
+				rank[i]++;
+			}
+		}
+	}
+
+	for (i = 0; i < col; i++) {
+		for (j = 0; j < row; j++) {
+			printf(" %d col %d row : %d\n", i, j, arr[i][j]);
+		}
+		printf("sum is %d / rank is %d\n", sum[i], rank[i]);
+	}
+
+	for (i = 0; i < col; i++) free(arr[i]);
+	free(arr);
+	free(sum);
+	free(rank);
+	return 0;
+}

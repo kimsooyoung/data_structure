@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Node* InsertNode(struct Node *current, int data);
+void DestroyNode(struct Node *destroy, struct Node* head);
+struct Node* CreateNode(int data);
+int SearchNode(struct Node* head, struct Node *search);
+void PrintNodeFrom(struct Node *from, int total_node);
+int CountNode(struct Node* head);
+
+struct Node {
+	int data; /* 데이터 */
+	struct Node* nextNode;
+	struct Node* prevNode;
+};
+struct Node* CreateNode(int data) {
+	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+	newNode->nextNode = newNode;
+	newNode->prevNode = newNode;
+	newNode->data = data;
+	return newNode;
+}
+struct Node* InsertNode(struct Node *current, int data) {
+	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+	struct Node* after = current->nextNode;
+	newNode->data = data;
+	newNode->nextNode = after;
+	newNode->prevNode = current;
+	/* current 는 이제 newNode 를 가리키게 된다 */
+	current->nextNode = newNode;
+	if (after) after->prevNode = newNode;
+
+	return newNode;
+}
+void DestroyNode(struct Node *destroy, struct Node* head) {
+	struct Node* after = head;
+	if (destroy == head) {
+		(head->nextNode)->prevNode = head->prevNode;
+		(head->prevNode)->nextNode = head->nextNode;
+		free(head);
+		return;
+	}
+	while (after) {
+		if (after->nextNode == destroy) {
+			after->nextNode = destroy->nextNode;
+			(destroy->nextNode)->prevNode = after;
+			free(destroy);
+			return;
+		}
+		after = after->nextNode;
+	}
+	printf("destination not found\n");
+	return;
+}
+int SearchNode(struct Node* head, struct Node *search) {
+	struct Node* after = head;
+	while (after) {
+		if (after->nextNode == search) {
+			return (after->nextNode)->data;
+		}
+		after = after->nextNode;
+	}
+	return -1;
+}
+void PrintNodeFrom(struct Node *from, int total_node) {
+	while (from) {
+		printf("노드의 데이터 : %d \n", from->data);
+		from = from->nextNode;
+		total_node--;
+		if (total_node <= 0) break;
+	}
+	printf("모든 노드가 끝남 \n");
+}
+int CountNode(struct Node* head) {
+	struct Node* after = head->nextNode;
+	int count = 1;
+	while (after) {
+		if (after == head) break;
+		count++;
+		after = after->nextNode;
+	}
+	return count;
+}
+int main() {
+	struct Node* Node1 = CreateNode(100);
+	struct Node* Node2 = InsertNode(Node1, 200);
+	struct Node* Node3 = InsertNode(Node2, 300);
+	/* Node 2 뒤에 Node4 넣기 */
+	struct Node* Node4 = InsertNode(Node2, 400);
+	PrintNodeFrom(Node1, CountNode(Node1));
+	DestroyNode(Node4, Node1);
+	PrintNodeFrom(Node1, CountNode(Node1));
+	//printf("number is %d", CountNode(Node1));
+
+	return 0;
+}

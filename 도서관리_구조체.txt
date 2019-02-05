@@ -1,0 +1,199 @@
+#include <stdio.h>
+
+char copy_str(char*dst, char * src);
+char search_str(char * dic, char * word);
+int add_book(struct Book* library, int * total_number);
+int search_book(struct Book* library, int total_number);
+int borrow_book(struct Book* library);
+int return_book(struct Book* library);
+void show_all(struct Book* library, int total_number);
+struct Book {
+	char name[30];
+	char author[30];
+	char pub[30];
+	int borrowed;
+};
+
+int main()
+{
+	struct Book library[100];
+
+	int user_choice; /* 유저가 선택한 메뉴*/
+	int total_book_number = 0; /* 현재 책의 수 */
+
+	while (1) {
+		printf("도서 관리 프로그램 \n");
+		printf("메뉴를 선택하세요 \n");
+		printf("1. 책을 새로 추가하기 \n");
+		printf("2. 책을 검색하기 \n");
+		printf("3. 책을 빌리기 \n");
+		printf("4. 책을 반납하기 \n");
+		printf("5. 전부 보여주기 \n");
+		printf("6. 프로그램 종료 \n");
+
+
+		printf("당신의 선택은 : ");
+		scanf_s("%d", &user_choice);
+		if (user_choice == 1) {
+			/* 책을 새로 추가하는 함수 호출 */
+			add_book(library, &total_book_number);
+		}
+		else if (user_choice == 2) {
+			/* 책을 검색하는 함수 호출 */
+			search_book(library, total_book_number);
+		}
+		else if (user_choice == 3) {
+			/* 책을 빌리는 함수 호출 */
+			borrow_book(library);
+		}
+		else if (user_choice == 4) {
+			/* 책을 반납하는 함수 호출 */
+			return_book(library);
+		}
+		else if (user_choice == 5) {
+			/* 전부 보여주는 함수 호출 */
+			show_all(library, total_book_number);
+		}
+		else if (user_choice == 6) {
+			/* 프로그램을 종료한다. */
+			printf("\n\n~~~~~~~~~~~~~~~~~~~~~~Good_Bye~~~~~~~~~~~~~~~~~~~\n\n");
+			break;
+		}
+	}
+
+	return 0;
+}
+char copy_str(char *dst, char*src) {
+	while (*src) {
+		*dst = *src;
+		dst++;
+		src++;
+	}
+	*dst = '\0';
+	return 1;
+}
+char search_str(char * dic, char * word) {
+	int loc = 0;
+	int search_loc = 0;
+
+	while (*dic) {
+		if (*dic == *word) {
+			while (*word) {
+				if (*dic != *word) {
+					word -= search_loc;
+					loc += search_loc;
+					search_loc = 0;
+					break;
+				}
+				dic++;
+				word++;
+				search_loc++;
+				if (*word == 0) {
+					return loc;
+				}
+			}
+		}
+		dic++;
+		loc++;
+	}
+	return -1;
+}
+//library[i]->name 아니고 이렇게 한다.
+int add_book(struct Book* library, int * total_number) {
+	printf("추가할 책의 제목 : ");
+	scanf_s("%s", (library + *total_number)->name, 30);
+	printf("추가할 책의 저자 : ");
+	scanf_s("%s", (library + *total_number)->author, 100);
+	printf("추가할 책의 출판사 : ");
+	scanf_s("%s", (library + *total_number)->pub, 100);
+	(library + *total_number)->borrowed = 0; /* 빌려지지 않음*/
+	printf("추가 완료! \n");
+	(*total_number)++;
+
+	return 0;
+}
+int search_book(struct Book* library, int total_number) {
+	int user_choice;
+	char user_search[30];
+
+	printf("어느 것으로 검색 할 것인가요? \n");
+	printf("1. 책 제목 검색 \n");
+	printf("2. 지은이 검색 \n");
+	printf("3. 출판사 검색 \n");
+	scanf_s("%d", &user_choice);
+
+	printf("검색할 단어를 입력해주세요 : ");
+	scanf_s("%s", user_search, 30);
+
+	switch (user_choice) {
+	case 1:
+		for (int i = 0; i < total_number; i++) {
+			if (search_str((library+i)->name, user_search) >= 0) {
+				printf("번호 : %d // 책 이름 : %s // 지은이 : %s // 출판사 : %s \n", i, (library + i)->name, (library + i)->author, (library + i)->pub);
+			}
+		}
+		break;
+	case 2:
+		for (int i = 0; i < total_number; i++) {
+			if (search_str((library + i)->author, user_search) >= 0) {
+				printf("번호 : %d // 책 이름 : %s // 지은이 : %s // 출판사 : %s \n", i, (library + i)->name, (library + i)->author, (library + i)->pub);
+			}
+		}
+		break;
+	case 3:
+		for (int i = 0; i < total_number; i++) {
+			if (search_str((library + i)->pub, user_search) >= 0) {
+				printf("번호 : %d // 책 이름 : %s // 지은이 : %s // 출판사 : %s \n", i, (library + i)->name, (library + i)->author, (library + i)->pub);
+			}
+		}
+		break;
+	default:
+		printf("1,2,3만 입력 가능합니다.\n");
+		return 0;
+	}
+
+	return 0;
+}
+int borrow_book(struct Book* library) {
+	int index;
+
+	printf("대출할 책의 번호를 써주세요 \n");
+	printf("책 번호 : ");
+	scanf_s("%d", &index);
+
+	if ((library+index)->borrowed == 1) {
+		printf("이미 대출되어 있는 상태입니다\n");
+	}
+	else {
+		(library + index)->borrowed = 1;
+		printf("성공적으로 대출되었습니다\n");
+	}
+	return 0;
+}
+int return_book(struct Book* library) {
+	int index;
+
+	printf("반납할 책의 번호를 써주세요 \n");
+	printf("책 번호 : ");
+	scanf_s("%d", &index);
+
+	if ((library + index)->borrowed == 0) {
+		printf("이미 반납되어 있는 상태입니다\n");
+	}
+	else {
+		(library + index)->borrowed = 0;
+		printf("성공적으로 반납되었습니다\n");
+	}
+	return 0;
+}
+void show_all(struct Book* library, int total_number) {
+	for (int i = 0; i < total_number; i++) {
+		printf("번호 : %d // 책 이름 : %s // 지은이 : %s // 출판사 : %s //", i, (library + i)->name, (library + i)->author, (library + i)->pub);
+		if ((library + i)->borrowed) {
+			printf(" 대출중\n");
+		}
+		else {
+			printf(" 대출 가능\n");
+		}
+	}
+}

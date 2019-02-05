@@ -1,0 +1,238 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define CAPACITY 100
+#define BUFFER_LENGTH 100
+
+typedef struct person {
+	char *name;
+	char *number;
+	char *email;
+	char *group;
+}Person;
+
+Person directory[CAPACITY];
+int n = 0;
+
+void save(char *file_name);
+void load(char *file_name);
+void handle_add(char *name);
+void add(char *name, char *number, char *email, char *group);
+int compose_name(char str[], int limit, char *context);
+void print_person(Person p);
+int search(char *name);
+int read_line_old(char * buffer, int n);
+int read_line(FILE *fp, char str[], int n);
+void _remove(char *name);
+void status();
+void find(char *name);
+
+/////////////////////////////////////////////////////////////////
+int main() {
+	char command_line[BUFFER_LENGTH];
+	char *command, *argument, *context;
+	char name_str[BUFFER_LENGTH];
+
+	while (1) {
+		printf("$ ");
+		if (read_line(stdin, command_line, BUFFER_LENGTH) <= 0)	continue;
+		if ((command = strtok_s(command_line, " ", &context)) == NULL) continue;
+
+		if (strcmp(command, "read") == 0) {
+			argument = strtok_s(NULL, " ", &context);
+			if (argument == NULL) {
+				printf("Invalid argument\n");
+				continue;
+			}
+			load(argument);
+			printf("Successfully Loaded\n");
+		}
+		else if (strcmp(command, "add") == 0) {
+			if (compose_name(name_str, BUFFER_LENGTH, context) <= 0) {
+				printf("Name required\n");
+				continue;
+			}
+			handle_add(name_str);
+		}
+		else if (strcmp(command, "find") == 0) {
+			if (compose_name(name_str, BUFFER_LENGTH, context) <= 0) {
+				printf("Name required\n");
+				continue;
+			}
+			find(name_str);
+		}
+		else if (strcmp(command, "status") == 0) {
+			status();
+		}
+		else if (strcmp(command, "delete") == 0) {
+			if (compose_name(name_str, BUFFER_LENGTH, context) <= 0) {
+				printf("Name required\n");
+				continue;
+			}
+			_remove(name_str);
+		}
+		else if (strcmp(command, "save") == 0) {
+			argument = strtok_s(NULL, " ", &context);
+			if (argument == NULL || strcmp(argument, "as") != 0) {
+				printf("Invalid argument\n");
+				continue;
+			}
+			argument = strtok_s(NULL, " ", &context);
+			if (argument == NULL) {
+				printf("Invalid argument\n");
+				continue;
+			}
+			save(argument);
+			printf("Successfully saved\n");
+		}
+		else if (strcmp(command, "exit") == 0) break;
+		else {
+			printf("No such command\n");
+			continue;
+		}
+	}
+
+	return 0;
+}
+int read_line(FILE *fp, char str[], int n) {
+	int ch, i = 0;
+	while ((ch = fgetc(fp)) != '\n' && ch != EOF)
+		if (n > i)
+			str[i++] = ch;
+
+	str[i] = '\0';
+	return i;
+}
+int read_line_old(char * buffer, int n) {
+	int i = 0;
+	char c;
+	while ((c = getchar()) != '\n')
+		if (i < n - 1)
+			buffer[i++] = c;
+	buffer[i] = '\0';
+	return i;
+}
+int search(char *name) {
+	int i;
+	for (i = 0; i < n; i++) {
+		if (strcmp(name, directory[i].name) == 0)
+			return i;
+	}
+	return -1;
+}
+void print_person(Person p) {
+	printf("%s:\n", p.name);
+	printf("	Phone: %s\n", p.number);
+	printf("	Email: %s\n", p.email);
+	printf("	Group: %s\n", p.group);
+}
+void _remove(char *name) {
+	int i = search(name);
+	if (i < 0) {
+		printf("No person named %s\n", name);
+	}
+	for (; i < n - 1; i++) {
+		directory[i] = directory[i + 1];
+	}	
+	n--;
+	printf("%s was deleted successfully\n", name);
+}
+int compose_name(char str[], int limit, char *context) {
+	char *word;
+	int length = 0;
+
+	if ((word = strtok_s(NULL, " ", &context)) == NULL) return -1;
+	// is this works??? else add param char *context
+	strcpy_s(str, BUFFER_LENGTH, word);
+
+	length += strlen(word);
+
+	while ((word = strtok_s(NULL, " ", &context)) != NULL) {
+		if ((length + strlen(word) + 1) < (unsigned int)limit) {
+			str[length++] = ' ';
+			str[length] = '\0';
+			strcat_s(str, BUFFER_LENGTH, word);
+			length += strlen(word);
+		}
+	}
+	return length;
+}
+void status() {
+	for (int i = 0; i < n; i++) {
+		print_person(directory[i]);
+	}
+	printf("Total %d person\n", n);
+}
+void find(char *name) {
+	int i = search(name);
+	if (i < 0) {
+		printf("No person named %s\n", name);
+	}
+	else
+		print_person(directory[i]);
+}
+void add(char *name, char *number, char *email, char *group) {
+	int i = n - 1;
+	while (i >= 0 && strcmp(name, directory[i].name) > 0) {
+		directory[i + 1] = directory[i];
+		i--;
+	}
+	directory[i + 1].name = _strdup(name);
+	directory[i + 1].number = _strdup(number);
+	directory[i + 1].email = _strdup(email);
+	directory[i + 1].group = _strdup(group);
+	n++;
+}
+void handle_add(char *name) {
+	char number[BUFFER_LENGTH], email[BUFFER_LENGTH], group[BUFFER_LENGTH];
+	char empty[] = " ";
+
+	printf("  Phone: ");
+	read_line(stdin, number, BUFFER_LENGTH);
+	printf("  E-mail: ");
+	read_line(stdin, email, BUFFER_LENGTH);
+	printf("  Group: ");
+	read_line(stdin, group, BUFFER_LENGTH);
+
+	add(name, (char *)(strlen(number) > 0 ? number : empty),
+		(char *)(strlen(email) > 0 ? email : empty),
+		(char *)(strlen(group) > 0 ? group : empty)); // (char *)???
+}
+
+void load(char *file_name) {
+	FILE *fp;
+	char buffer[BUFFER_LENGTH];
+	char *name, *number, *email, *group, *context;
+	errno_t err = fopen_s(&fp, file_name, "r");
+
+	if (err != 0) {
+		printf("File Error!\n");
+		return;
+	}
+	while (1) {  //while (read_line(fp, buffer, BUFFER_LENGTH) > 0)
+		if (read_line(fp, buffer, BUFFER_LENGTH) <= 0)
+			break;
+		name = strtok_s(buffer, "#", &context);
+		number = strtok_s(NULL, "#", &context);
+		email = strtok_s(NULL, "#", &context);
+		group = strtok_s(NULL, "#", &context);
+		add(name, number, email, group);
+	}
+	fclose(fp);
+	return;
+}
+void save(char *file_name) {
+	FILE *fp;
+	errno_t err = fopen_s(&fp, file_name, "w");
+	if (err != 0) {
+		printf("File error\n");
+		return;
+	}
+	for (int i = 0; i < n; i++) {
+		fprintf(fp, "%s#", directory[i].name);
+		fprintf(fp, "%s#", directory[i].number);
+		fprintf(fp, "%s#", directory[i].email);
+		fprintf(fp, "%s#\n", directory[i].group);
+	}
+	fclose(fp);
+}

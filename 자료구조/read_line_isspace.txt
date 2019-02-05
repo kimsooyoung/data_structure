@@ -1,0 +1,30 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAXWORD 20
+
+int read_line(char * buffer, int n) {
+	int i = 0;
+	char c;
+	while ((c = getchar()) != '\n')
+		if (i < n - 1 && ((c != ' ')||( i > 0 && buffer[i-1] != ' ')))
+			buffer[i++] = c;
+	if (i > 0 && buffer[i-1] == ' ')
+		i--;
+	buffer[i] = '\0';
+	return i;
+}
+
+int main()
+{
+	char buffer[MAXWORD];
+	int k;
+
+	while (1) {
+		printf("$ ");
+		k = read_line(buffer, MAXWORD);
+		printf("%s %d\n", buffer, k);
+	}
+
+	return 0;
+}

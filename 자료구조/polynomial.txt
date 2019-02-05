@@ -1,0 +1,363 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAX_POLYS 100
+#define BUFFER_LENGTH 100
+
+struct term {
+	int coef;
+	int expo;
+	struct term *next;
+};
+typedef struct term Term;
+typedef struct polynomial {
+	char name;
+	Term* first;
+	int size;
+}Polynomial;
+
+Polynomial *polys[MAX_POLYS];
+int n = 0;
+
+Polynomial* create_by_parse_polynomial(char name, char *body);
+Polynomial* create_by_add_two_polynomials(char name, char f, char g);
+Polynomial* create_polynomial_instance(char name);
+Term* create_term_instance();
+int parse_and_add_term(char *expr, int begin, int end, Polynomial* p_poly);
+int read_line(FILE *fp, char str[], int n);
+int eval(Polynomial *poly, int x);
+int eval_term(Term *t, int x);
+void erase_blanks(char *expression);
+void handle_calc(char name, char *num);
+void handle_print(char name);
+void print_poly(Polynomial *p);
+void print_term(Term *t);
+void add_term(int c, int e, Polynomial* poly);
+void handle_definition(char *expression);
+void insert_polynomial(Polynomial *ptr_poly);
+void destroy_polynomial(Polynomial *ptr_poly);
+
+Term* create_term_instance() {
+	Term* t = (Term*)malloc(sizeof(Term));
+	t->coef = 0;
+	t->expo = 0;
+	//t->next = NULL;
+	return t;
+}
+Polynomial* create_polynomial_instance(char name) {
+	Polynomial* p = (Polynomial*)malloc(sizeof(Polynomial));
+	p->name = name;
+	p->size = 0;
+	p->first = NULL;
+	return p;
+}
+void add_term(int c, int e, Polynomial* poly) {
+	if (c == 0)
+		return;
+	Term *p = poly->first;
+	Term *q = NULL;
+	while (p != NULL && p->expo > e) {
+		q = p;
+		p = p->next;
+	}
+	if (p != NULL && p->expo == e) {
+		p->coef += c;
+		if (p->coef == 0) {
+			if (q == NULL)
+				poly->first = p->next;
+			else
+				q->next = p->next;
+			free(q);
+			poly->size--;
+		}
+		return;
+	}
+	Term *t = create_term_instance();
+	t->coef = c;
+	t->expo = e;
+	if (q == NULL) {
+		t->next = poly->first;
+		poly->first = t;
+	}
+	else {
+		t->next = p;
+		q->next = t;
+	}
+	poly->size++;
+	return;
+}
+int eval_term(Term *t, int x) {
+	int result = t->coef;
+	for (int i = 0; i < t->expo; i++) {
+		result *= x;
+	}
+	return result;
+}
+int eval(Polynomial *poly, int x) {
+	int result = 0;
+	Term *t = poly->first;
+	while (t != NULL) {
+		result += eval_term(t, x);
+		t = t->next;
+	}
+	return result;
+}
+void print_term(Term *t) {
+	if (t->expo == 1) {
+		printf("%dx", t->coef);
+		if (t->next != NULL && (t->next)->coef > 0) {
+			printf("+");
+			return;
+		}
+		return;
+	}
+	else if (t->expo == 0) {
+		printf("%d", t->coef);
+		return;
+	}
+	printf("%dx^%d", t->coef, t->expo);
+	if (t->next != NULL && (t->next)->coef > 0) {
+		printf("+");
+		return;
+	}
+	return;
+}
+void print_poly(Polynomial *p) {
+	Term *t = p->first;
+	printf("%c = ", p->name);
+	while (t != NULL)
+	{
+		print_term(t);
+		t = t->next;
+	}
+	printf("\n");
+}
+int read_line(FILE *fp, char str[], int n) {
+	int i = 0, ch;
+	
+	while ((ch = fgetc(fp)) != '\n' && ch != EOF)
+		if(n > i)
+			str[i++] = ch;
+	str[i] = '\0';
+	return i;
+}
+void handle_print(char name) {
+	for (int i = 0; i < n; i++)
+		if (polys[i]->name == name)
+			print_poly(polys[i]);
+}
+void handle_calc(char name, char *num) {
+	int result = 0;
+	for (int i = 0; i < n; i++)
+		if (polys[i]->name == name)
+			result = eval(polys[i], atoi(num));
+	printf("result : %d\n", result);
+}
+void erase_blanks(char *expression) {
+	char *token, *context, temp[BUFFER_LENGTH];
+	int length = 0;
+	token = strtok_s(expression, " ", &context);
+	strcpy_s(temp, BUFFER_LENGTH, token);
+	length += strlen(temp);
+	while ((token = strtok_s(NULL, " ", &context)) != NULL) {
+		temp[length] = '\0';
+		strcat_s(temp, BUFFER_LENGTH, token);
+		length += strlen(token);
+	}
+	strcpy_s(expression, BUFFER_LENGTH, temp);
+}
+Polynomial* create_by_parse_polynomial(char name, char *body) {
+	Polynomial * ptr_poly = create_polynomial_instance(name);
+
+	int i = 0, begin_term = 0;
+	while (i < strlen(body)) {
+		if (body[i] == '+' || body[i] == '-')
+			i++;
+		while (i < strlen(body) && body[i] != '+' && body[i] != '-')
+			i++;
+		int result = parse_and_add_term(body, begin_term, i, ptr_poly);
+		if (result == 0) {
+			printf("Parse Error\n");
+			destroy_polynomial(ptr_poly);
+			return NULL;
+		}
+		begin_term = i;
+	}
+	return ptr_poly;
+}
+int parse_and_add_term(char *expr, int begin, int end, Polynomial* p_poly) {
+	int i = begin;
+	int sign_coef = 1, coef = 0, expo = 1;
+	if (expr[i] == '+')
+		i++;
+	else if (expr[i] == '-') {
+		sign_coef = -1;
+		i++;
+	}
+	while (i < end && expr[i] >= '0' && expr[i] <= '9') {
+		coef = coef * 10 + (int)(expr[i] - '0');
+		i++;
+	}
+	if (coef == 0)
+		coef = sign_coef;
+	else
+		coef *= sign_coef;
+	if (i >= end) {
+		add_term(coef, 0, p_poly);
+		return 1;
+	}
+	if (expr[i] != 'x') {
+		printf("value error\n");
+		return 0;
+	}
+	i++;
+	if (i >= end) {
+		add_term(coef, 1, p_poly);
+		return 1;
+	}
+	if (expr[i] != '^') {
+		printf("value error\n");
+		return 0;
+	}
+	i++;
+
+	expo = 0;
+	while (i < end && expr[i] >= '0' && expr[i] <= '9') {
+		expo = expo * 10 + (int)(expr[i] - '0');
+		i++;
+	}
+	add_term(coef, expo, p_poly);
+	return 1;
+}
+void insert_polynomial(Polynomial *ptr_poly) {
+	for (int i = 0; i < n; i++) {
+		if (polys[i]->name == ptr_poly->name) {
+			destroy_polynomial(polys[i]);
+			polys[i] = ptr_poly;
+			return;
+		}
+	}
+	polys[n++] = ptr_poly;
+}
+void destroy_polynomial(Polynomial *ptr_poly) {
+	if (ptr_poly == NULL)
+		return;
+	Term *t = ptr_poly->first, *tmp;
+	while (t != NULL) {
+		tmp = t;
+		t = t->next;
+		free(tmp);
+	}
+	free(ptr_poly);
+}
+Polynomial* create_by_add_two_polynomials(char name, char f, char g) {
+	int f_index = -1, g_index = -1;
+	for (int i = 0; i < n; i++) {
+		if (f_index == -1 && polys[i]->name == f) f_index = i;
+		if (g_index == -1 && polys[i]->name == g) g_index = i;		
+	}
+	if (f_index == -1 || g_index == -1) {
+		printf("There is no such polynomial\n");
+		return NULL;
+	}
+
+	Polynomial * ptr_poly = create_polynomial_instance(name);
+	Term *f_term = polys[f_index]->first;
+	Term *g_term = polys[g_index]->first;
+	
+	while (f_term != NULL) {
+		add_term(f_term->coef, f_term->expo, ptr_poly);
+		f_term = f_term->next;
+	}
+	while (g_term != NULL) {
+		add_term(g_term->coef, g_term->expo, ptr_poly);
+		g_term = g_term->next;
+	}
+	print_poly(ptr_poly);
+	for (int i = 0; i < n; i++) {
+		if (polys[i]->name == name) {
+			insert_polynomial(polys[i]);
+			printf("flag\n");
+		}
+	}
+	return ptr_poly;
+}
+void handle_definition(char *expression) {
+	erase_blanks(expression);
+	char *context;
+
+	char *f_name = strtok_s(expression, "=", &context);
+	if (f_name == NULL || strlen(f_name) != 1) {
+		printf("Unsupported command\n");
+		return;
+	}
+	char *exp_body = strtok_s(NULL, "=", &context);
+	if (exp_body == NULL || strlen(exp_body) <= 0) {
+		printf("Invalid argument.--\n");
+		return;
+	}
+	if (exp_body[0] >= 'a' && exp_body[0] <= 'z' && exp_body[0] != 'x') {
+		char *former = strtok_s(exp_body, "+", &context);
+		if (former == NULL || strlen(former) != 1) {
+			printf("Invalid expression format for former\n");
+			return;
+		}
+		char *later = strtok_s(NULL, "+", &context);
+		if (later == NULL || strlen(later) != 1) {
+			printf("Invalid expression format for later\n");
+			return;
+		}
+		Polynomial *pol = create_by_add_two_polynomials(f_name[0], former[0], later[0]);
+		if (pol == NULL) {
+			printf("Invalid expression format\n");
+			return;
+		}
+		insert_polynomial(pol);
+	}
+	else {
+		Polynomial *pol = create_by_parse_polynomial(f_name[0], exp_body);
+		if (pol == NULL) {
+			printf("Invalid expression format for polynomial\n");
+			return;
+		}
+		insert_polynomial(pol);
+	}
+}
+int main(){
+	char command_line[BUFFER_LENGTH], copied[BUFFER_LENGTH];
+	char *command, *argument1, *argument2, *context;
+	
+	while (1) {
+		printf("$ ");
+		if(read_line(stdin, command_line, BUFFER_LENGTH) <= 0)
+			continue;
+		strcpy_s(copied, BUFFER_LENGTH, command_line);
+		command = strtok_s(command_line, " ", &context);
+		if (strcmp(command, "print") == 0) {
+			argument1 = strtok_s(NULL, " ", &context);
+			if (argument1 == NULL) {
+				printf("Invalid argument.\n");
+				continue;
+			}
+			handle_print(argument1[0]);
+		}
+		else if (strcmp(command, "calc") == 0) {
+			argument1 = strtok_s(NULL, " ", &context);
+			if (argument1 == NULL) {
+				printf("Invalid argument.\n");
+				continue;
+			}
+			argument2 = strtok_s(NULL, " ", &context);
+			if (argument2 == NULL) {
+				printf("Invalid argument.\n");
+				continue;
+			}
+			handle_calc(argument1[0], argument2);
+		}
+		else if (strcmp(command, "exit") == 0)
+			break;
+		else 
+			handle_definition(copied);		
+	}
+	return 0;
+}

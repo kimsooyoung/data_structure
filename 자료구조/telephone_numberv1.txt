@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define CAPACITY 100
+#define BUFFER_SIZE 20
+char* names[CAPACITY];
+char* numbers[CAPACITY];
+int n = 0;
+void add();
+void find();
+void status();
+void remove_my();
+char* str_dup(char*);
+int main() {
+	char command[BUFFER_SIZE];
+	while (1) {
+		printf("$ ");
+		scanf_s("%s", command, sizeof(command));
+
+		if (strcmp(command, "add") == 0)
+			add();
+		else if (strcmp(command, "find") == 0)
+			find();
+		else if (strcmp(command, "status") == 0)
+			status();
+		else if (strcmp(command, "delete") == 0)
+			remove_my();
+		else if (strcmp(command, "exit") == 0)
+			break;
+	}
+	return 0;
+}
+char* str_dup(char* buffer) {
+	char * p;
+	p = (char *)malloc(strlen(buffer) + 1);
+	if (p != NULL)
+		strcpy_s(p, sizeof(p), buffer);
+	return p;
+}
+void add() {
+	char name[BUFFER_SIZE], number[BUFFER_SIZE];
+	scanf_s("%s", name, sizeof(name));
+	scanf_s("%s", number, sizeof(number));
+	names[n] = _strdup(name);
+	numbers[n] = _strdup(number);
+	n++;
+	printf("%s was added successfully\n", name);
+}
+void find() {
+	char name[BUFFER_SIZE];
+	scanf_s("%s", name, sizeof(name));
+	for (int i = 0; i < n; i++) {
+		if (strcmp(name, names[i]) == 0) {
+			printf("%s\n", numbers[i]);
+			return;
+		}
+	}
+	printf("No person named '%s' exists\n", name);
+	return ;
+}
+void status() {
+	for (int i = 0; i < n; i++) {
+		printf("%s %s\n", names[i], numbers[i]);
+	}
+	printf("Total %d persons\n", n);
+}
+void remove_my() {
+	char name[BUFFER_SIZE];
+	scanf_s("%s", name, sizeof(name));
+	for (int i = 0; i < n; i++) {
+		if (strcmp(name, names[i]) == 0) {
+			names[i] = names[n - 1];
+			numbers[i] = numbers[n - 1];
+			n--;
+			printf("'%s' is deleted successfully. \n", name);
+			return;
+		}
+	}
+	printf("No person named '%s' exists\n", name);
+	return;
+}

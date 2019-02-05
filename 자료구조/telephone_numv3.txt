@@ -1,0 +1,202 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define INIT_CAPACITY 10
+#define BUFFER_SIZE 50
+
+char** names;
+char** numbers;
+
+int capacity = INIT_CAPACITY;
+int n = 0;
+
+char delim[] = " ";
+
+void load(char * file_name);
+int read_line(char * buffer, int n);
+void init_directory();
+void process_command();
+void add(char * name, char * number);
+void status();
+void find(char * name);
+int search(char * dist);
+void _remove(char * name);
+void save(char * file_name);
+void reallocate();
+
+int read_line(char * buffer, int n) {
+	int i = 0;
+	char c;
+	while ((c = getchar()) != '\n')
+		if (i < n - 1)
+			buffer[i++] = c;
+	buffer[i] = '\0';
+	return i;
+}
+void init_directory() {
+	names = (char **)malloc(sizeof(char *) * INIT_CAPACITY);
+	numbers = (char **)malloc(sizeof(char *) * INIT_CAPACITY);
+}
+void process_command() {
+	char command_line[BUFFER_SIZE];
+	char *command, *argument1, *argument2, *context;
+	while (1) {
+		printf("$ ");
+		if (read_line(command_line, BUFFER_SIZE) <= 0)
+			continue;
+		command = strtok_s(command_line, delim, &context);
+		if (command == NULL) continue;
+		if (strcmp(command, "read") == 0) {
+			argument1 = strtok_s(NULL, delim, &context);
+			if (argument1 == NULL) {
+				printf("File name required.\n");
+				continue;
+			}
+			load(argument1);
+		}
+		else if (strcmp(command, "add") == 0) {
+			argument1 = strtok_s(NULL, delim, &context);
+			argument2 = strtok_s(NULL, delim, &context);
+			if (argument1 == NULL || argument2 == NULL) {
+				printf("Invalid arguments\n");
+				continue;
+			}
+			add(argument1, argument2);
+			printf("%s was added successfully\n", argument1);
+		}
+		else if (strcmp(command, "find") == 0) {
+			argument1 = strtok_s(NULL, delim, &context);
+			if (argument1 == NULL) {
+				printf("Invalid argument\n");
+				continue;
+			}
+			find(argument1);
+		}
+		else if (strcmp(command, "status") == 0) {
+			status();
+		}
+		else if (strcmp(command, "delete") == 0) {
+			argument1 = strtok_s(NULL, delim, &context);
+			if (argument1 == NULL) {
+				printf("Invalid argument\n");
+				continue;
+			}
+			_remove(argument1);
+			printf("%s was successfully deleted. \n", argument1);
+		}
+		else if (strcmp(command, "save") == 0) {
+			argument1 = strtok_s(NULL, delim, &context);
+			argument2 = strtok_s(NULL, delim, &context);
+			if (argument1 == NULL || strcmp(argument1, "as") != 0 || argument2 == NULL) {
+				printf("Invalid arguments\n");
+				continue;
+			}
+			save(argument2);
+			printf("all guys successfully saved.\n");
+		}
+		else if (strcmp(command, "exit") == 0)
+			break;
+		else {
+			printf("No command like '%s'\n", command);
+			continue;
+		}			
+	}
+}
+void load(char * file_name) {
+	char buffer1[BUFFER_SIZE], buffer2[BUFFER_SIZE];
+	FILE * fp;
+	errno_t err = fopen_s(&fp, file_name, "r");
+	if (err != 0) {
+		printf("FILE Error raised\n");
+		return;
+	}
+	while (fscanf_s(fp, "%s", buffer1, sizeof(buffer1)) != EOF) {
+		fscanf_s(fp, "%s", buffer2, sizeof(buffer2));
+		add(buffer1, buffer2);
+	}
+	printf("Read and Loaded successfully\n");
+	fclose(fp);
+	return;
+}
+void add(char * name, char * number) {
+	if (n >= capacity)
+		reallocate();
+
+	int i = n - 1;
+	while (i >= 0 && strcmp(names[i], name) > 0) {
+		names[i + 1] = names[i];
+		numbers[i + 1] = numbers[i];
+		i--;
+	}
+	names[i + 1] = _strdup(name);
+	numbers[i + 1] = _strdup(number);
+	n++;
+	return;
+}
+void status()
+{
+	for (int i = 0; i < n; i++) {
+		printf("%s %s\n", names[i], numbers[i]);
+	}
+	printf("Total %d persons\n", n);
+}
+void find(char * name) {
+	int index = search(name);
+	if (index == -1)
+		printf("No person named %s\n", name);
+	else
+		printf("%s\n", numbers[index]);
+	return;
+}
+void _remove(char * name) {
+	int index = search(name);
+	if (index == -1) {
+		printf("No person named %s\n", name);
+		return;
+	}
+	for (; index < n - 1; index++) {
+		names[index] = names[index + 1];
+		numbers[index] = numbers[index + 1];
+	}
+	n--;
+	return;
+}
+int search(char* dist) {
+	int index = -1;
+	for (int i = 0; i < n; i++)
+		if (strcmp(dist, names[i]) == 0)
+			index = i;
+	return index;
+}
+void save(char * file_name) {
+	FILE *fp;
+	errno_t err = fopen_s(&fp, file_name, "w");
+
+	if (err != 0) {
+		printf("FILE Error raised\n");
+		return;
+	}
+	for(int i =0;i<n;i++)
+		fprintf(fp,"%s %s\n", names[i], numbers[i]);
+	fclose(fp);
+}
+void reallocate() {
+	capacity *= 2;
+	char** temp1 = (char**)malloc(sizeof(char *) * capacity);
+	char** temp2 = (char**)malloc(sizeof(char *) * capacity);
+
+	for (int i = 0; i < n; i++) {
+		temp1[i] = names[i];
+		temp2[i] = numbers[i];
+	}
+	free(names);
+	free(numbers);
+	names = temp1;
+	numbers = temp2;
+	return;
+}
+int main() {
+	init_directory();
+	process_command();
+	return 0;
+}

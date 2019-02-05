@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MAX_POLYS 100
+#define BUFFER_LENGTH 100
+
+struct node{
+	struct node *next;
+	struct node *prev;
+	char *data;
+};
+typedef struct node Node;
+
+Node *head;
+Node *tail;
+int size = 0;
+
+void add_after(Node *pre, char* item) {
+	Node *new_node = (Node*)malloc(sizeof(Node));
+	new_node->prev = pre;
+	new_node->data = item;
+	new_node->next = NULL;
+	if (pre == NULL && head == NULL) {
+		head = new_node;
+		tail = new_node;
+	}
+	else if (pre == NULL){
+		new_node->next = head;
+		head->prev = new_node;
+		head = new_node;
+	}
+	else if (pre == tail) {
+		new_node->prev = tail;
+		tail->next = new_node;
+		tail = new_node;
+	}
+	else {
+		new_node->prev = pre;
+		new_node->next = pre->next;
+		pre->next->prev = new_node;
+		pre->next = new_node;
+	}
+	size++;
+}
+void remove(Node *p) {
+	//need to search Node p after than,
+	if (p == tail && p == head) {
+		tail = NULL;
+		head = NULL;
+	}
+	else if (p == head) {
+		p->next = head;
+		head->prev = NULL;
+	}
+	else if (p == tail) {
+		p->prev = tail;
+		tail->next = NULL;
+	}
+	else {
+		p->prev->next = p->next;
+		p->next->prev = p->prev;
+	}
+	p->next = NULL;
+	p->prev = NULL;
+	free(p);
+	size--;
+}
+
+void add_ordered_list(char *item) {
+	Node *p = tail;
+	while (p != NULL && strcmp(p->data, item) > 0)
+		p = p->prev;
+	add_after(p, item);
+}
